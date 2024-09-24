@@ -4,15 +4,35 @@ import Result from './Result';
 
 const QuestionForm = () => {
   const [questions, setQuestions] = useState([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
 
   useEffect(() => {
+    // Fetch questions from your backend API
     axios.get('http://localhost:5000/api/questions')
-      .then(response => setQuestions(response.data))
+      .then(response => {
+        const uniqueQuestions = response.data.filter((question, index, self) =>
+          index === self.findIndex(q => q.question === question.question)
+        );
+        setQuestions(uniqueQuestions);
+      })
       .catch(error => console.error('Error fetching questions:', error));
   }, []);
+
+  useEffect(() => {
+    // Timer to automatically move to the next question
+    const timer = setTimeout(() => {
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } else {
+        handleSubmit(); // Automatically submit when the last question is reached
+      }
+    }, 10000); // 5 seconds
+
+    return () => clearTimeout(timer); // Cleanup on unmount
+  }, [currentQuestionIndex, questions.length]);
 
   const handleChange = (e, questionId) => {
     setAnswers({
@@ -22,6 +42,8 @@ const QuestionForm = () => {
   };
 
   const handleSubmit = () => {
+    // Calculate the score based on answers
+    // (You may want to implement this calculation differently)
     axios.post('http://localhost:5000/api/grade', { answers })
       .then(response => {
         setScore(response.data.score);
@@ -34,50 +56,51 @@ const QuestionForm = () => {
     <div>
       {!submitted ? (
         <div>
-          {questions.map(question => (
-            <div key={question.id}>
-              <h3>{question.question}</h3>
-              {question.type === 'MCQ' && (
-                question.options.map((option, index) => (
+          {questions.length > 0 && (
+            <div key={questions[currentQuestionIndex].id}>
+              <h3>{questions[currentQuestionIndex].question}</h3>
+              {questions[currentQuestionIndex].type === 'MCQ' && (
+                questions[currentQuestionIndex].options.map((option, index) => (
                   <div key={index}>
                     <input
                       type="radio"
-                      name={`question${question.id}`}
+                      name={`question${questions[currentQuestionIndex].id}`}
                       value={option}
-                      onChange={(e) => handleChange(e, question.id)}
+                      onChange={(e) => handleChange(e, questions[currentQuestionIndex].id)}
                     />
                     {option}
                   </div>
                 ))
               )}
-              {question.type === 'TrueFalse' && (
+              {questions[currentQuestionIndex].type === 'TrueFalse' && (
                 ['True', 'False'].map((option, index) => (
                   <div key={index}>
                     <input
                       type="radio"
-                      name={`question${question.id}`}
+                      name={`question${questions[currentQuestionIndex].id}`}
                       value={option}
-                      onChange={(e) => handleChange(e, question.id)}
+                      onChange={(e) => handleChange(e, questions[currentQuestionIndex].id)}
                     />
                     {option}
                   </div>
                 ))
               )}
-              {question.type === 'FillInTheBlank' && (
+              {questions[currentQuestionIndex].type === 'FillInTheBlank' && (
                 <input
                   type="text"
-                  onChange={(e) => handleChange(e, question.id)}
+                  onChange={(e) => handleChange(e, questions[currentQuestionIndex].id)}
                 />
               )}
-              {question.type === 'Descriptive' && (
+              {questions[currentQuestionIndex].type === 'Descriptive' && (
                 <textarea
                   maxLength="250"
-                  onChange={(e) => handleChange(e, question.id)}
+                  onChange={(e) => handleChange(e, questions[currentQuestionIndex].id)}
                 />
               )}
             </div>
-          ))}
-          <button onClick={handleSubmit}>Submit</button>
+          )}
+          {/* Displaying a simple message indicating time left */}
+          <p>You will be taken to the next question in 15 seconds...</p>
         </div>
       ) : (
         <Result score={score} />

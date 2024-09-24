@@ -29,7 +29,7 @@ const QuestionForm = () => {
       } else {
         handleSubmit(); // Automatically submit when the last question is reached
       }
-    }, 10000); // 5 seconds
+    }, 10000); // 10 seconds
 
     return () => clearTimeout(timer); // Cleanup on unmount
   }, [currentQuestionIndex, questions.length]);
@@ -100,7 +100,7 @@ const QuestionForm = () => {
             </div>
           )}
           {/* Displaying a simple message indicating time left */}
-          <p>You will be taken to the next question in 15 seconds...</p>
+          <p>You will be taken to the next question in 10 seconds...</p>
         </div>
       ) : (
         <Result score={score} />
